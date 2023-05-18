@@ -1,14 +1,7 @@
 import React from "react";
 
 interface ISearchForm {
-  fetchEmployees: (params: {
-    minSalary: number;
-    maxSalary: number;
-    offset: number;
-    limit: number;
-    sort: string;
-    ascending: boolean;
-  }) => void;
+  submitForm: () => void;
   minSalary: number;
   maxSalary: number;
   setMinSalary: React.Dispatch<React.SetStateAction<number>>;
@@ -16,14 +9,20 @@ interface ISearchForm {
 }
 
 const SearchForm = ({
-  fetchEmployees,
+  submitForm,
   minSalary,
   maxSalary,
   setMinSalary,
   setMaxSalary,
 }: ISearchForm) => {
   return (
-    <form className="flex flex1 items-center h-12 w-full">
+    <form
+      className="flex flex1 items-center h-12 w-full"
+      onSubmit={(e) => {
+        e.preventDefault();
+        submitForm();
+      }}
+    >
       <button className="bg-gray-400 rounded-l h-full px-4 ">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -66,6 +65,7 @@ const InputBox = ({ isMin, value, setValue }: IInputBox) => {
         value={value}
         type="number"
         pattern="[0-9]"
+        required={false}
         onChange={(e) => setValue(Number(e.target.value))}
       />
     </div>

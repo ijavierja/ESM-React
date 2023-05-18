@@ -9,7 +9,8 @@ const getUsersParamsSchema = Joi.object({
   maxSalary: Joi.number().greater(Joi.ref("minSalary")).required(),
   offset: Joi.number().integer().min(0).required(),
   limit: Joi.number().integer().min(0).required(),
-  sort: Joi.string().allow().required(),
+  sort: Joi.string().allow("id", "login", "name", "salary").required(),
+  ascending: Joi.boolean(),
 });
 
 const Employees = () => {
@@ -18,7 +19,7 @@ const Employees = () => {
   const [maxSalary, setMaxSalary] = useState<number>(100000);
   const [offset, setOffset] = useState<number>(0);
   const [limit, setLimit] = useState<number>(10);
-  const [sort, setSort] = useState<string>("name");
+  const [sort, setSort] = useState<string>("id");
   const [ascending, setAscending] = useState<boolean>(true);
 
   const transformDataForTable = (employees: any[]) => {
@@ -63,6 +64,55 @@ const Employees = () => {
     }
   };
 
+  const handleSubmitForm = () => {
+    fetchEmployees({ minSalary, maxSalary, offset, limit, sort, ascending });
+  };
+
+  const handlePageUp = () => {
+    fetchEmployees({
+      minSalary,
+      maxSalary,
+      offset: offset + limit,
+      limit,
+      sort,
+      ascending,
+    });
+    setOffset(offset + limit);
+  };
+
+  const handlePageDown = () => {
+    let newOffset = offset - limit;
+    if (newOffset < 0) {
+      newOffset = 0;
+    }
+    fetchEmployees({
+      minSalary,
+      maxSalary,
+      offset: newOffset,
+      limit,
+      sort,
+      ascending,
+    });
+    setOffset(newOffset);
+  };
+
+  const handleSortClick = (header: string) => {
+    let newAsc = true;
+    if (header === sort) {
+      newAsc = !ascending;
+    }
+    fetchEmployees({
+      minSalary,
+      maxSalary,
+      offset,
+      limit,
+      sort: header,
+      ascending: newAsc,
+    });
+    setSort(header);
+    setAscending(newAsc);
+  };
+
   useEffect(() => {
     fetchEmployees({
       minSalary: minSalary,
@@ -77,7 +127,7 @@ const Employees = () => {
   return (
     <div className="flex-1 h-full w-fit white py-10 px-32">
       <SearchForm
-        fetchEmployees={fetchEmployees}
+        submitForm={handleSubmitForm}
         minSalary={minSalary}
         maxSalary={maxSalary}
         setMinSalary={setMinSalary}
@@ -86,7 +136,22 @@ const Employees = () => {
       <div className="my-10">
         <h1 className="font-bold text-3xl">Employees</h1>
       </div>
-        {employees ? <EmployeeTable data={employees} /> : <div>No result</div>}
+      {employees ? (
+        <EmployeeTable
+          data={employees}
+          sort={sort}
+          ascending={ascending}
+          limit={limit}
+          setLimit={setLimit}
+          setOffset={setOffset}
+          submitForm={handleSubmitForm}
+          handlePageUp={handlePageUp}
+          handlePageDown={handlePageDown}
+          handleSortClick={handleSortClick}
+        />
+      ) : (
+        <div>No result</div>
+      )}
       {/* <button
         onClick={async () => {
           try {
