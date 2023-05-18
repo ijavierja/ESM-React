@@ -1,9 +1,37 @@
 import React, { useEffect, useState } from "react";
 import SearchForm from "./SearchForm";
 import apiAgent from "../api/apiAgent";
+import Joi from "joi";
+import EmployeeTable from "./EmployeeTable";
+
+const getUsersParamsSchema = Joi.object({
+  minSalary: Joi.number().min(0).required(),
+  maxSalary: Joi.number().greater(Joi.ref("minSalary")).required(),
+  offset: Joi.number().integer().min(0).required(),
+  limit: Joi.number().integer().min(0).required(),
+  sort: Joi.string().allow().required(),
+});
 
 const Employees = () => {
-  const [employees, setEmployees] = useState<any>();
+  const [employees, setEmployees] = useState<any[] | null>(null);
+  const [minSalary, setMinSalary] = useState<number>(0);
+  const [maxSalary, setMaxSalary] = useState<number>(100000);
+  const [offset, setOffset] = useState<number>(0);
+  const [limit, setLimit] = useState<number>(10);
+  const [sort, setSort] = useState<string>("name");
+  const [ascending, setAscending] = useState<boolean>(true);
+
+  const transformDataForTable = (employees: any[]) => {
+    const data = employees.map((employee: any) => {
+      return {
+        id: employee.id,
+        name: employee.name,
+        login: employee.login,
+        salary: employee.salary,
+      };
+    });
+    return data || [];
+  };
 
   const fetchEmployees = async (params: {
     minSalary: number;
@@ -15,6 +43,12 @@ const Employees = () => {
   }) => {
     try {
       const { minSalary, maxSalary, offset, limit, sort, ascending } = params;
+      const validationResults = getUsersParamsSchema.validate(params);
+
+      if (validationResults.error) {
+        console.log(validationResults.error);
+      }
+
       const result = await apiAgent.User.getUser(
         minSalary,
         maxSalary,
@@ -23,7 +57,7 @@ const Employees = () => {
         sort,
         ascending
       );
-      setEmployees(result.data.results);
+      setEmployees(transformDataForTable(result.data.results));
     } catch (error) {
       console.log(error);
     }
@@ -31,22 +65,28 @@ const Employees = () => {
 
   useEffect(() => {
     fetchEmployees({
-      minSalary: 0,
-      maxSalary: 100000,
-      offset: 0,
-      limit: 10,
-      sort: "name",
-      ascending: true,
+      minSalary: minSalary,
+      maxSalary: maxSalary,
+      offset,
+      limit,
+      sort,
+      ascending,
     });
   }, []);
 
   return (
     <div className="flex-1 h-full w-fit white py-10 px-32">
-      <SearchForm fetchEmployees={fetchEmployees} />
+      <SearchForm
+        fetchEmployees={fetchEmployees}
+        minSalary={minSalary}
+        maxSalary={maxSalary}
+        setMinSalary={setMinSalary}
+        setMaxSalary={setMaxSalary}
+      />
       <div className="my-10">
         <h1 className="font-bold text-3xl">Employees</h1>
       </div>
-      <div>Table</div>
+        {employees ? <EmployeeTable data={employees} /> : <div>No result</div>}
       {/* <button
         onClick={async () => {
           try {
@@ -66,7 +106,6 @@ const Employees = () => {
       >
         click me
       </button> */}
-      <button onClick={() => console.log(employees)}>click</button>
     </div>
   );
 };
